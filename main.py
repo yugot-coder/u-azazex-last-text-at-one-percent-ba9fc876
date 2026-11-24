@@ -20,12 +20,26 @@ ENTRY = (
 
 def validate(path: Path) -> str:
     """Read back the written file and assert it is exactly one line
-    of 1 to 200 characters, per the competition gate."""
-    text = path.read_text(encoding="utf-8")
-    assert 1 <= len(text) <= 200, f"entry is {len(text)} chars, must be 1-200"
+    of 1 to 200 characters, per the competition gate.
+
+    The read-back is strict: the file must be one single line that
+    ends with exactly one trailing newline, carries no leading or
+    trailing whitespace, and contains no control characters besides
+    that final newline. Its byte length must fit the 1-200 limit.
+    """
+    data = path.read_bytes()
+    assert 1 <= len(data) <= 200, f"entry is {len(data)} bytes, must be 1-200"
+    assert data.endswith(b"\n"), "entry must end with exactly one newline"
+    assert not data.endswith(b"\n\n"), "entry must not end with a blank line"
+    text = data.decode("utf-8")
+    assert not any(ord(ch) < 0x20 and ch != "\n" for ch in text), (
+        "entry must not contain control characters"
+    )
     lines = text.splitlines()
     assert len(lines) == 1, f"entry must be exactly one line, got {len(lines)}"
-    assert lines[0].strip(), "entry must not be only white space"
+    line = lines[0]
+    assert line == line.strip(), "entry must have no leading/trailing whitespace"
+    assert line, "entry must not be empty"
     return text
 
 
